@@ -33,6 +33,15 @@ async function logout() {
           </span>
           <span class="text-lg font-semibold tracking-tight">TaskNexus</span>
         </RouterLink>
+        <nav v-if="session.user" class="ml-6 text-sm font-medium">
+          <RouterLink
+            :to="{ name: 'projects' }"
+            class="rounded-md px-2 py-1 text-slate-600 hover:text-slate-900"
+            active-class="text-indigo-700"
+          >
+            Proyectos
+          </RouterLink>
+        </nav>
         <div v-if="session.user" class="ml-auto flex items-center gap-3">
           <span class="hidden text-sm text-slate-600 sm:inline" data-testid="current-user">
             {{ session.user.name }}

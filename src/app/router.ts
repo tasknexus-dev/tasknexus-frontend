@@ -11,11 +11,19 @@ declare module 'vue-router' {
 }
 
 export const routes: RouteRecordRaw[] = [
+  { path: '/', name: 'home', redirect: { name: 'projects' } },
   {
-    path: '/',
-    name: 'home',
-    component: () => import('@/features/home/views/HomeView.vue'),
-    meta: { requiresAuth: true, title: 'Inicio' },
+    path: '/projects',
+    name: 'projects',
+    component: () => import('@/features/projects/views/ProjectsView.vue'),
+    meta: { requiresAuth: true, title: 'Proyectos' },
+  },
+  {
+    path: '/projects/:id',
+    name: 'project',
+    component: () => import('@/features/projects/views/ProjectView.vue'),
+    props: true,
+    meta: { requiresAuth: true, title: 'Proyecto' },
   },
   {
     path: '/login',
