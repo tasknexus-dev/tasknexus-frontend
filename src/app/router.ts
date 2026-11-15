@@ -45,6 +45,12 @@ export const routes: RouteRecordRaw[] = [
         meta: { title: 'Tarea' },
       },
       {
+        path: 'activity',
+        name: 'activity',
+        component: () => import('@/features/activity/views/ProjectActivityTab.vue'),
+        meta: { title: 'Actividad' },
+      },
+      {
         path: 'members',
         name: 'members',
         component: () => import('@/features/projects/views/ProjectMembersTab.vue'),

@@ -10,7 +10,7 @@ import RoleBadge from '../components/RoleBadge.vue'
 import { projectContextKey } from '../context'
 import { canManageProject } from '../permissions'
 
-/** Página de un proyecto: cabecera y pestañas (tablero, lista, miembros, ajustes). */
+/** Página de un proyecto: cabecera y pestañas (tablero, lista, actividad, miembros, ajustes). */
 const props = defineProps<{ id: string }>()
 
 const project = ref<Project | null>(null)
@@ -21,6 +21,7 @@ const problem = ref<Problem | null>(null)
 const tabs = computed(() => [
   { name: 'board', label: 'Tablero' },
   { name: 'tasks', label: 'Lista' },
+  { name: 'activity', label: 'Actividad' },
   { name: 'members', label: 'Miembros' },
   ...(project.value && canManageProject(project.value.myRole)
     ? [{ name: 'settings', label: 'Ajustes' }]

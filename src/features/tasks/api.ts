@@ -122,3 +122,42 @@ export async function moveTask(taskId: string, input: MoveInput): Promise<TaskSu
 export async function deleteTask(taskId: string): Promise<void> {
   await http.delete(`/api/v1/tasks/${taskId}`)
 }
+
+export interface TaskComment {
+  id: string
+  taskId: string
+  author: UserRef
+  content: string
+  createdAt: string
+  updatedAt: string
+  edited: boolean
+  version: number
+  canEdit: boolean
+  canDelete: boolean
+}
+
+/** Máximo de caracteres de un comentario (igual que en el backend). */
+export const COMMENT_MAX = 5000
+
+/** Del más antiguo al más reciente. */
+export async function listComments(taskId: string): Promise<TaskComment[]> {
+  const { data } = await http.get<TaskComment[]>(`/api/v1/tasks/${taskId}/comments`)
+  return data
+}
+
+export async function addComment(taskId: string, content: string): Promise<TaskComment> {
+  const { data } = await http.post<TaskComment>(`/api/v1/tasks/${taskId}/comments`, { content })
+  return data
+}
+
+export async function editComment(
+  commentId: string,
+  input: { content: string; version: number },
+): Promise<TaskComment> {
+  const { data } = await http.put<TaskComment>(`/api/v1/comments/${commentId}`, input)
+  return data
+}
+
+export async function deleteComment(commentId: string): Promise<void> {
+  await http.delete(`/api/v1/comments/${commentId}`)
+}

@@ -6,6 +6,7 @@ import { useCurrentProject, useProjectContext } from '@/features/projects/contex
 import { toProblem, type Problem } from '@/shared/api/problem'
 import ProblemAlert from '@/shared/ui/ProblemAlert.vue'
 import UserAvatar from '@/shared/ui/UserAvatar.vue'
+import ActivityFeed from '@/features/activity/components/ActivityFeed.vue'
 
 import {
   deleteTask,
@@ -18,6 +19,7 @@ import {
 } from '../api'
 import DueDate from '../components/DueDate.vue'
 import PriorityBadge from '../components/PriorityBadge.vue'
+import TaskComments from '../components/TaskComments.vue'
 import TaskForm from '../components/TaskForm.vue'
 import { formatDateTime, STATUS_LABELS, STATUSES } from '../labels'
 
@@ -34,6 +36,16 @@ const problem = ref<Problem | null>(null)
 const editing = ref(false)
 const busy = ref(false)
 const confirmingDelete = ref(false)
+/** Pestaña inferior: comentarios o historial de la tarea. */
+const section = ref<'comments' | 'history'>('comments')
+const commentCount = ref<number | null>(null)
+const sectionTabs = computed(() => [
+  {
+    id: 'comments' as const,
+    label: commentCount.value === null ? 'Comentarios' : `Comentarios (${commentCount.value})`,
+  },
+  { id: 'history' as const, label: 'Historial' },
+])
 
 const initial = computed<Partial<TaskInput> | undefined>(() =>
   task.value
@@ -165,6 +177,40 @@ function remove() {
           @submit="save"
           @cancel="editing = false"
         />
+
+        <div class="border-t border-slate-100 pt-4">
+          <div class="mb-4 flex gap-4 text-sm font-medium" role="tablist">
+            <button
+              v-for="tab in sectionTabs"
+              :key="tab.id"
+              type="button"
+              role="tab"
+              :aria-selected="section === tab.id"
+              class="-mb-px border-b-2 px-1 pb-1"
+              :class="
+                section === tab.id
+                  ? 'border-indigo-600 text-indigo-700'
+                  : 'border-transparent text-slate-600 hover:text-slate-900'
+              "
+              :data-testid="`task-section-${tab.id}`"
+              @click="section = tab.id"
+            >
+              {{ tab.label }}
+            </button>
+          </div>
+          <TaskComments
+            v-show="section === 'comments'"
+            :task-id="task.id"
+            :can-comment="task.canEdit"
+            @count="commentCount = $event"
+          />
+          <ActivityFeed
+            v-if="section === 'history'"
+            :project-id="project.id"
+            :task-id="task.id"
+            compact
+          />
+        </div>
       </article>
 
       <aside class="space-y-4 rounded-xl border border-slate-200 bg-white p-5 text-sm shadow-sm">
