@@ -1,31 +1,33 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
-import { RouterLink, useRouter } from 'vue-router'
+import { computed, provide, ref, watch } from 'vue'
+import { RouterLink, RouterView } from 'vue-router'
 
-import { useSessionStore } from '@/features/auth/stores/session'
 import { toProblem, type Problem } from '@/shared/api/problem'
 import ProblemAlert from '@/shared/ui/ProblemAlert.vue'
 
 import { getProject, listMembers, type Member, type Project } from '../api'
-import MembersPanel from '../components/MembersPanel.vue'
-import ProjectSettings from '../components/ProjectSettings.vue'
 import RoleBadge from '../components/RoleBadge.vue'
+import { projectContextKey } from '../context'
 import { canManageProject } from '../permissions'
 
+/** Página de un proyecto: cabecera y pestañas (tablero, lista, miembros, ajustes). */
 const props = defineProps<{ id: string }>()
-
-const router = useRouter()
-const session = useSessionStore()
 
 const project = ref<Project | null>(null)
 const members = ref<Member[]>([])
 const loading = ref(true)
 const problem = ref<Problem | null>(null)
-const tab = ref<'members' | 'settings'>('members')
 
-const isOwner = computed(() => project.value !== null && canManageProject(project.value.myRole))
+const tabs = computed(() => [
+  { name: 'board', label: 'Tablero' },
+  { name: 'tasks', label: 'Lista' },
+  { name: 'members', label: 'Miembros' },
+  ...(project.value && canManageProject(project.value.myRole)
+    ? [{ name: 'settings', label: 'Ajustes' }]
+    : []),
+])
 
-async function load() {
+async function reload() {
   problem.value = null
   try {
     const [loadedProject, loadedMembers] = await Promise.all([
@@ -34,7 +36,6 @@ async function load() {
     ])
     project.value = loadedProject
     members.value = loadedMembers
-    if (!canManageProject(loadedProject.myRole)) tab.value = 'members'
   } catch (error) {
     project.value = null
     problem.value = toProblem(error)
@@ -43,33 +44,28 @@ async function load() {
   }
 }
 
+provide(projectContextKey, {
+  project,
+  members,
+  reload,
+  replaceProject: (updated) => {
+    project.value = updated
+  },
+})
+
 watch(
   () => props.id,
   () => {
     loading.value = true
-    tab.value = 'members'
-    void load()
+    project.value = null
+    void reload()
   },
   { immediate: true },
 )
-
-function onUpdated(updated: Project) {
-  project.value = updated
-  // Transferir la propiedad cambia los roles: se recargan también los miembros.
-  void load()
-}
-
-function goToList() {
-  void router.push({ name: 'projects' })
-}
 </script>
 
 <template>
   <div class="space-y-6">
-    <RouterLink :to="{ name: 'projects' }" class="text-sm text-indigo-600 hover:underline">
-      ← Proyectos
-    </RouterLink>
-
     <p v-if="loading" class="text-sm text-slate-500">Cargando proyecto…</p>
 
     <div
@@ -78,12 +74,19 @@ function goToList() {
       data-testid="project-not-found"
     >
       <p class="font-medium">Este proyecto no existe o no tienes acceso.</p>
+      <RouterLink :to="{ name: 'projects' }" class="mt-2 inline-block text-sm text-indigo-600">
+        Volver a mis proyectos
+      </RouterLink>
     </div>
     <ProblemAlert v-else-if="!project" :problem="problem" />
 
     <template v-else>
       <header class="space-y-2">
         <div class="flex flex-wrap items-center gap-2">
+          <RouterLink :to="{ name: 'projects' }" class="text-sm text-indigo-600 hover:underline">
+            Proyectos
+          </RouterLink>
+          <span class="text-slate-400" aria-hidden="true">/</span>
           <span
             class="rounded-md bg-slate-100 px-2 py-0.5 font-mono text-xs font-semibold text-slate-700"
           >
@@ -104,52 +107,21 @@ function goToList() {
         <p v-if="project.description" class="max-w-3xl whitespace-pre-line text-slate-600">
           {{ project.description }}
         </p>
-        <p class="text-sm text-slate-500">Propietario: {{ project.owner.name }}</p>
       </header>
 
-      <ProblemAlert :problem="problem" />
-
-      <nav
-        v-if="isOwner"
-        class="flex gap-4 border-b border-slate-200 text-sm font-medium"
-        role="tablist"
-      >
-        <button
-          v-for="option in [
-            { value: 'members', label: 'Miembros' },
-            { value: 'settings', label: 'Ajustes' },
-          ] as const"
-          :key="option.value"
-          type="button"
-          role="tab"
-          :aria-selected="tab === option.value"
-          class="-mb-px border-b-2 px-1 pb-2"
-          :class="
-            tab === option.value
-              ? 'border-indigo-600 text-indigo-700'
-              : 'border-transparent text-slate-600 hover:text-slate-900'
-          "
-          @click="tab = option.value"
+      <nav class="flex gap-5 overflow-x-auto border-b border-slate-200 text-sm font-medium">
+        <RouterLink
+          v-for="tab in tabs"
+          :key="tab.name"
+          :to="{ name: tab.name, params: { id: project.id } }"
+          class="-mb-px border-b-2 border-transparent px-1 pb-2 whitespace-nowrap text-slate-600 hover:text-slate-900"
+          active-class="!border-indigo-600 !text-indigo-700"
         >
-          {{ option.label }}
-        </button>
+          {{ tab.label }}
+        </RouterLink>
       </nav>
 
-      <MembersPanel
-        v-if="tab === 'members'"
-        :project="project"
-        :members="members"
-        :current-user-id="session.user?.id ?? ''"
-        @changed="load"
-        @left="goToList"
-      />
-      <ProjectSettings
-        v-else
-        :project="project"
-        :members="members"
-        @updated="onUpdated"
-        @deleted="goToList"
-      />
+      <RouterView />
     </template>
   </div>
 </template>

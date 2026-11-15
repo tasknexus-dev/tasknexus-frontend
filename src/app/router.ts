@@ -20,10 +20,43 @@ export const routes: RouteRecordRaw[] = [
   },
   {
     path: '/projects/:id',
-    name: 'project',
     component: () => import('@/features/projects/views/ProjectView.vue'),
     props: true,
     meta: { requiresAuth: true, title: 'Proyecto' },
+    children: [
+      { path: '', name: 'project', redirect: (to) => ({ name: 'board', params: to.params }) },
+      {
+        path: 'board',
+        name: 'board',
+        component: () => import('@/features/board/views/BoardView.vue'),
+        meta: { title: 'Tablero' },
+      },
+      {
+        path: 'tasks',
+        name: 'tasks',
+        component: () => import('@/features/tasks/views/TaskListView.vue'),
+        meta: { title: 'Tareas' },
+      },
+      {
+        path: 'tasks/:taskId',
+        name: 'task',
+        component: () => import('@/features/tasks/views/TaskView.vue'),
+        props: true,
+        meta: { title: 'Tarea' },
+      },
+      {
+        path: 'members',
+        name: 'members',
+        component: () => import('@/features/projects/views/ProjectMembersTab.vue'),
+        meta: { title: 'Miembros' },
+      },
+      {
+        path: 'settings',
+        name: 'settings',
+        component: () => import('@/features/projects/views/ProjectSettingsTab.vue'),
+        meta: { title: 'Ajustes' },
+      },
+    ],
   },
   {
     path: '/login',
